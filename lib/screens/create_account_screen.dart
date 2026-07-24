@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class CreateAccountScreen extends StatefulWidget {
@@ -79,12 +80,28 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
       final uid = data['localId'] as String;
 
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+      final batch = FirebaseFirestore.instance.batch();
+      final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+      batch.set(userRef, {
         'email': email,
         'displayName': name,
         'role': _role,
         'createdAt': DateTime.now().toIso8601String(),
       });
+
+      if (_role == 'employee') {
+        final empRef = FirebaseFirestore.instance.collection('employees').doc(email);
+        batch.set(empRef, {
+          'email': email,
+          'name': name,
+          'displayName': name,
+          'createdBy': FirebaseAuth.instance.currentUser?.email ?? 'admin',
+          'createdAt': DateTime.now().toIso8601String(),
+          'storedPassword': password,
+        });
+      }
+
+      await batch.commit();
 
       setState(() {
         _loading = false;

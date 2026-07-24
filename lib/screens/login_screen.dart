@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:task_tracker_admin/screens/dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -11,17 +13,66 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _passCtrl = TextEditingController();
   bool _error = false;
+  bool _loading = false;
+  String? _status;
 
-  static const _adminPass = 'tasktracker2024';
+  static const _defaultPass = 'tasktracker2024';
+  static const _adminEmail = 'admin@tasktracker.app';
+  static const _adminPassword = 'TaskTrackerAdmin2024!';
 
-  void _login() {
-    if (_passCtrl.text == _adminPass) {
+  Future<void> _login() async {
+    final prefs = await SharedPreferences.getInstance();
+    final adminPass = prefs.getString('admin_passphrase') ?? _defaultPass;
+
+    if (_passCtrl.text != adminPass) {
+      setState(() => _error = true);
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = false;
+      _status = 'Signing in...';
+    });
+
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        setState(() => _status = 'Connected');
+        _goToDashboard();
+        return;
+      }
+
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _adminEmail,
+        password: _adminPassword,
+      );
+
+      setState(() => _status = 'Connected');
+      _goToDashboard();
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Firebase Auth error: ${e.message}');
+      setState(() {
+        _loading = false;
+        _status = null;
+        _error = true;
+      });
+    } catch (e) {
+      debugPrint('Login error: $e');
+      setState(() {
+        _loading = false;
+        _status = null;
+      });
+      _goToDashboard();
+    }
+  }
+
+  void _goToDashboard() {
+    if (mounted) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const DashboardScreen()),
       );
-    } else {
-      setState(() => _error = true);
     }
   }
 
@@ -69,6 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextField(
                     controller: _passCtrl,
                     obscureText: true,
+                    enabled: !_loading,
                     decoration: InputDecoration(
                       hintText: 'Admin passphrase',
                       border: OutlineInputBorder(
@@ -79,11 +131,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     onSubmitted: (_) => _login(),
                   ),
                   const SizedBox(height: 16),
+                  if (_status != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(_status!,
+                          style: TextStyle(
+                              color: Colors.grey.shade600, fontSize: 12)),
+                    ),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      onPressed: _login,
-                      child: const Text('Continue'),
+                      onPressed: _loading ? null : _login,
+                      child: _loading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
+                          : const Text('Continue'),
                     ),
                   ),
                 ],

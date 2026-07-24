@@ -34,20 +34,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final db = FirebaseFirestore.instance;
 
-      final usersSnap = await db
-          .collection('users')
+      final employeesSnap = await db
+          .collection('employees')
           .get()
           .timeout(const Duration(seconds: 10));
-      int managers = 0;
-      int employees = 0;
-      for (final doc in usersSnap.docs) {
-        final role = doc.data()['role'] as String? ?? '';
-        if (role == 'manager') {
-          managers++;
-        } else if (role == 'employee') {
-          employees++;
-        }
-      }
+
+      final managersSnap = await db
+          .collection('users')
+          .where('role', isEqualTo: 'manager')
+          .get()
+          .timeout(const Duration(seconds: 10));
 
       final tasksSnap =
           await db.collection('tasks').get().timeout(const Duration(seconds: 10));
@@ -58,8 +54,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       if (mounted) {
         setState(() {
-          _managers = managers;
-          _employees = employees;
+          _managers = managersSnap.size;
+          _employees = employeesSnap.size;
           _tasks = tasksSnap.size;
           _problems = problemsSnap.size;
           _loading = false;
@@ -85,7 +81,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                MaterialPageRoute(builder: (_) => const AdminSettingsScreen())),
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
