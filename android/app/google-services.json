@@ -7,9 +7,28 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:202182349540:android:placeholder",
+        "mobilesdk_app_id": "1:202182349540:android:1c444d90a7e489f85752f1",
         "android_client_info": {
           "package_name": "com.dali951.task_tracker_admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCm-npO3B4toDBgYQltMRbPOMJxeeypVbw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:202182349540:android:ac882cbe77afa54f5752f1",
+        "android_client_info": {
+          "package_name": "com.example.task_tracker"
         }
       },
       "oauth_client": [],

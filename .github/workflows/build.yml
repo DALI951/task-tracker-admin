@@ -22,6 +22,12 @@ jobs:
         with:
           channel: 'stable'
 
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep 'version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -32,13 +38,13 @@ jobs:
         run: |
           mkdir -p releases
           cp build/app/outputs/flutter-apk/app-release.apk \
-            releases/Task-Tracker-Admin.apk
+            "releases/Task-Tracker-Admin-v${{ steps.version.outputs.version }}.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: admin-apk
-          path: releases/Task-Tracker-Admin.apk
+          path: releases/Task-Tracker-Admin-v${{ steps.version.outputs.version }}.apk
 
   build-web:
     runs-on: ubuntu-latest
@@ -50,6 +56,12 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep 'version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Install dependencies
         run: flutter pub get
@@ -63,13 +75,13 @@ jobs:
       - name: Zip web build
         run: |
           mkdir -p releases
-          cd build/web && zip -r "$GITHUB_WORKSPACE/releases/Task-Tracker-Admin-web.zip" .
+          cd build/web && zip -r "$GITHUB_WORKSPACE/releases/Task-Tracker-Admin-v${{ steps.version.outputs.version }}-web.zip" .
 
       - name: Upload web artifact
         uses: actions/upload-artifact@v4
         with:
           name: admin-web-zip
-          path: releases/Task-Tracker-Admin-web.zip
+          path: releases/Task-Tracker-Admin-v*-web.zip
 
       - name: Upload web pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -95,6 +107,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep 'version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Download all available artifacts
         uses: actions/download-artifact@v4
         with:
@@ -110,20 +128,20 @@ jobs:
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
-          name: "Task Tracker Admin v1.0.0"
+          tag_name: v${{ steps.version.outputs.version }}
+          name: "Task Tracker Admin v${{ steps.version.outputs.version }}"
           body: |
-            ## Task Tracker Admin Panel
+            ## Task Tracker Admin v${{ steps.version.outputs.version }}
 
             ### Android
-            1. Download `Task-Tracker-Admin.apk`
+            1. Download `Task-Tracker-Admin-v${{ steps.version.outputs.version }}.apk`
             2. Open on your Android device
             3. Allow installation from unknown sources if prompted
 
             ### Web
-            1. Download `Task-Tracker-Admin-web.zip`
+            1. Download `Task-Tracker-Admin-v${{ steps.version.outputs.version }}-web.zip`
             2. Extract and open `index.html`
-            3. Or visit: https://dali951.github.io/task-tracker-admin/
+            3. Or visit: https://dali951.github.io/task-tracker-admin/admin/
 
             ### Registration Website
             Send this link to clients so they can create their own account:

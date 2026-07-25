@@ -1,8 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:task_tracker_admin/main.dart';
 import 'package:task_tracker_admin/screens/login_screen.dart';
+import 'package:task_tracker_admin/screens/update_service.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -13,16 +16,47 @@ class AdminSettingsScreen extends StatefulWidget {
 
 class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   bool _isDark = false;
+  String _version = '1.0.0';
+  bool _checkingUpdate = false;
+  bool _updateAvailable = false;
+  String _latestVersion = '';
+  String _changelog = '';
+  String? _apkUrl;
 
   @override
   void initState() {
     super.initState();
     _loadTheme();
+    _loadVersion();
+    if (!kIsWeb) _checkForUpdate();
   }
 
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() => _isDark = prefs.getBool('admin_dark_mode') ?? false);
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    setState(() => _version = info.version);
+  }
+
+  Future<void> _checkForUpdate() async {
+    setState(() => _checkingUpdate = true);
+    try {
+      final update = await AdminUpdateService().checkForUpdate();
+      if (update != null && mounted) {
+        setState(() {
+          _updateAvailable = true;
+          _latestVersion = update['latestVersion'];
+          _changelog = update['changelog'];
+          _apkUrl = update['apkUrl'];
+        });
+      }
+    } catch (e) {
+      debugPrint('Update check error: $e');
+    }
+    if (mounted) setState(() => _checkingUpdate = false);
   }
 
   Future<void> _toggleTheme(bool val) async {
@@ -80,17 +114,24 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () {
-              if (currentCtrl.text != 'tasktracker2024') {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Current passphrase is wrong')),
-                );
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              final storedPass =
+                  prefs.getString('admin_passphrase') ?? 'tasktracker2024';
+              if (currentCtrl.text != storedPass) {
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Current passphrase is wrong')),
+                  );
+                }
                 return;
               }
               if (newCtrl.text.isEmpty || newCtrl.text != confirmCtrl.text) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Passphrases do not match')),
-                );
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Passphrases do not match')),
+                  );
+                }
                 return;
               }
               Navigator.pop(ctx, true);
@@ -219,6 +260,30 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             onChanged: _toggleTheme,
           ),
           const Divider(),
+          if (!kIsWeb) ...[
+            _section('Updates'),
+            ListTile(
+              leading: _checkingUpdate
+                  ? const SizedBox(
+                      width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Icon(
+                      _updateAvailable ? Icons.system_update : Icons.check_circle_outline,
+                      color: _updateAvailable ? Colors.orange : Colors.green,
+                    ),
+              title: Text(_updateAvailable
+                  ? 'Update Available: v$_latestVersion'
+                  : 'App is up to date'),
+              subtitle: Text(_updateAvailable ? 'Current: v$_version' : 'v$_version'),
+              trailing: _updateAvailable
+                  ? const Icon(Icons.chevron_right)
+                  : IconButton(
+                      icon: const Icon(Icons.refresh, size: 20),
+                      onPressed: _checkForUpdate,
+                    ),
+              onTap: _updateAvailable ? _showUpdateDialog : null,
+            ),
+            const Divider(),
+          ],
           _section('Security'),
           ListTile(
             leading: const Icon(Icons.lock_outline),
@@ -236,10 +301,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           ),
           const Divider(),
           _section('About'),
-          const ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('Task Tracker Admin'),
-            subtitle: Text('Version 1.0.0'),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('Task Tracker Admin'),
+            subtitle: Text('Version $_version'),
           ),
           const Divider(),
           _section('Danger Zone'),
@@ -272,6 +337,58 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             ),
           ),
           const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  void _showUpdateDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Update to v$_latestVersion'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Current version: v$_version',
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              Text('Latest version: v$_latestVersion',
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              if (_changelog.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Text('Changes:',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                Text(_changelog, style: const TextStyle(fontSize: 13)),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Later'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              if (_apkUrl != null) {
+                try {
+                  await AdminUpdateService().downloadAndInstall(_apkUrl!);
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Download failed: $e')),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('Install Now'),
+          ),
         ],
       ),
     );
