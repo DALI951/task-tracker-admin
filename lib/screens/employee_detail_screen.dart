@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:task_tracker_admin/screens/task_detail_screen.dart';
 import 'package:task_tracker_admin/screens/problem_detail_screen.dart';
@@ -57,7 +57,6 @@ class _TasksTab extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection('tasks')
           .where('assignedToEmail', isEqualTo: employeeEmail)
-          .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -92,6 +91,16 @@ class _TasksTab extends StatelessWidget {
         }
 
         final tasks = snapshot.data!.docs;
+        tasks.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+          final aDate = (aData['createdAt'] as Timestamp?)?.toDate();
+          final bDate = (bData['createdAt'] as Timestamp?)?.toDate();
+          if (aDate == null && bDate == null) return 0;
+          if (aDate == null) return 1;
+          if (bDate == null) return -1;
+          return bDate.compareTo(aDate);
+        });
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: tasks.length,
@@ -181,7 +190,6 @@ class _ProblemsTab extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection('problems')
           .where('reportedBy', isEqualTo: employeeEmail)
-          .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -216,6 +224,16 @@ class _ProblemsTab extends StatelessWidget {
         }
 
         final problems = snapshot.data!.docs;
+        problems.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+          final aDate = (aData['createdAt'] as Timestamp?)?.toDate();
+          final bDate = (bData['createdAt'] as Timestamp?)?.toDate();
+          if (aDate == null && bDate == null) return 0;
+          if (aDate == null) return 1;
+          if (bDate == null) return -1;
+          return bDate.compareTo(aDate);
+        });
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: problems.length,

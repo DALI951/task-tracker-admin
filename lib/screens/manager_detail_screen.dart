@@ -134,7 +134,6 @@ class _TasksTab extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection('tasks')
           .where('createdBy', isEqualTo: managerEmail)
-          .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -169,6 +168,16 @@ class _TasksTab extends StatelessWidget {
         }
 
         final tasks = snapshot.data!.docs;
+        tasks.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+          final aDate = (aData['createdAt'] as Timestamp?)?.toDate();
+          final bDate = (bData['createdAt'] as Timestamp?)?.toDate();
+          if (aDate == null && bDate == null) return 0;
+          if (aDate == null) return 1;
+          if (bDate == null) return -1;
+          return bDate.compareTo(aDate);
+        });
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: tasks.length,
