@@ -20,8 +20,13 @@ android {
         applicationId = "com.dali951.task_tracker_admin"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        val verName = flutter.versionName
+        val parts = verName.split(".")
+        val major = parts.getOrElse(0) { "0" }.toIntOrNull() ?: 0
+        val minor = parts.getOrElse(1) { "0" }.toIntOrNull() ?: 0
+        val patch = parts.getOrElse(2) { "0" }.toIntOrNull() ?: 0
+        versionCode = major * 10000 + minor * 100 + patch
+        versionName = verName
     }
 
     buildTypes {
