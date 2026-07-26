@@ -1,8 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:task_tracker_admin/screens/create_account_screen.dart';
+import 'package:task_tracker_admin/screens/employees_list_screen.dart';
+import 'package:task_tracker_admin/screens/managers_list_screen.dart';
+import 'package:task_tracker_admin/screens/problems_list_screen.dart';
 import 'package:task_tracker_admin/screens/settings_screen.dart';
-import 'package:task_tracker_admin/screens/users_list_screen.dart';
+import 'package:task_tracker_admin/screens/tasks_list_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -122,14 +125,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               title: 'Managers',
                               value: '$_managers',
                               icon: Icons.business_center,
-                              color: const Color(0xFF1565C0))),
+                              color: const Color(0xFF1565C0),
+                              onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const ManagersListScreen())))),
                       const SizedBox(width: 12),
                       Expanded(
                           child: _StatCard(
                               title: 'Employees',
                               value: '$_employees',
                               icon: Icons.people,
-                              color: const Color(0xFF2E7D32))),
+                              color: const Color(0xFF2E7D32),
+                              onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const EmployeesListScreen())))),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -140,14 +153,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               title: 'Tasks',
                               value: '$_tasks',
                               icon: Icons.task_alt,
-                              color: const Color(0xFFE65100))),
+                              color: const Color(0xFFE65100),
+                              onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const TasksListScreen())))),
                       const SizedBox(width: 12),
                       Expanded(
                           child: _StatCard(
                               title: 'Problems',
                               value: '$_problems',
                               icon: Icons.report_problem,
-                              color: const Color(0xFFC62828))),
+                              color: const Color(0xFFC62828),
+                              onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const ProblemsListScreen())))),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -169,12 +192,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 8),
                   _ActionCard(
                     title: 'View Users',
-                    subtitle: 'See all managers and employees',
+                    subtitle: 'See managers and their employees',
                     icon: Icons.people_outline,
                     onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const UsersListScreen())),
+                            builder: (_) => const ManagersListScreen())),
                   ),
                 ],
               ),
@@ -188,12 +211,14 @@ class _StatCard extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
 
   const _StatCard(
       {required this.title,
       required this.value,
       required this.icon,
-      required this.color});
+      required this.color,
+      this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -203,23 +228,27 @@ class _StatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: Colors.grey.shade200),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 12),
-            Text(value,
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 2),
-            Text(title,
-                style:
-                    TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-          ],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(height: 12),
+              Text(value,
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 2),
+              Text(title,
+                  style:
+                      TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+            ],
+          ),
         ),
       ),
     );
