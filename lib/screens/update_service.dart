@@ -58,8 +58,11 @@ class AdminUpdateService {
     return null;
   }
 
-  Future<void> downloadAndInstall(String apkUrl) async {
-    await downloadAndInstallApk(apkUrl);
+  Future<void> downloadAndInstall(
+    String apkUrl, {
+    void Function(int received, int total)? onProgress,
+  }) async {
+    await downloadAndInstallApk(apkUrl, onProgress: onProgress);
   }
 
   bool _isNewer(String latest, String current) {

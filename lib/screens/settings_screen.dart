@@ -376,15 +376,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               if (_apkUrl != null) {
-                try {
-                  await AdminUpdateService().downloadAndInstall(_apkUrl!);
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Download failed: $e')),
-                    );
-                  }
-                }
+                _showDownloadProgress();
               }
             },
             child: const Text('Install Now'),
@@ -392,6 +384,72 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         ],
       ),
     );
+  }
+
+  void _showDownloadProgress() {
+    if (_apkUrl == null) return;
+    final progress = ValueNotifier<double>(0.0);
+    final dialogCtx = GlobalKey<State>();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        dialogCtx.currentContext;
+        return AlertDialog(
+          key: dialogCtx,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.system_update, size: 48, color: Color(0xFF1565C0)),
+              const SizedBox(height: 16),
+              const Text('Downloading update...', style: TextStyle(fontWeight: FontWeight.w500)),
+              const SizedBox(height: 16),
+              ValueListenableBuilder<double>(
+                valueListenable: progress,
+                builder: (_, val, __) => Column(
+                  children: [
+                    LinearProgressIndicator(value: val > 0 ? val : null),
+                    const SizedBox(height: 8),
+                    Text(val > 0 ? '${(val * 100).toInt()}%' : 'Starting...',
+                        style: const TextStyle(fontSize: 12)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    AdminUpdateService().downloadAndInstall(
+      _apkUrl!,
+      onProgress: (received, total) {
+        if (total > 0) {
+          progress.value = received / total;
+        }
+      },
+    ).then((_) {
+      progress.dispose();
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Download complete — install prompt should appear')),
+        );
+      }
+    }).catchError((e) {
+      progress.dispose();
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed: $e')),
+        );
+      }
+    });
   }
 
   Widget _section(String title) {
