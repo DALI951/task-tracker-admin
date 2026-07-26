@@ -1,11 +1,9 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:open_file/open_file.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:path_provider/path_provider.dart';
+
+import 'download_service_mobile.dart'
+    if (dart.library.html) 'download_service_web.dart';
 
 class AdminUpdateService {
   static const _repoOwner = 'DALI951';
@@ -61,15 +59,7 @@ class AdminUpdateService {
   }
 
   Future<void> downloadAndInstall(String apkUrl) async {
-    final dir = await getTemporaryDirectory();
-    final filePath = '${dir.path}/task-tracker-admin-update.apk';
-
-    await _dio.download(apkUrl, filePath);
-
-    final result = await OpenFile.open(filePath);
-    if (result.type != ResultType.done) {
-      debugPrint('Failed to open APK: ${result.message}');
-    }
+    await downloadAndInstallApk(apkUrl);
   }
 
   bool _isNewer(String latest, String current) {
