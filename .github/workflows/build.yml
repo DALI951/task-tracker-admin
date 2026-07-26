@@ -67,7 +67,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Web
-        run: flutter build web --release --base-href /task-tracker-admin/admin/
+        run: flutter build web --release --base-href /task-tracker-admin/
 
       - name: Copy registration website
         run: cp website/index.html build/web/register.html
@@ -141,7 +141,7 @@ jobs:
             ### Web
             1. Download `Task-Tracker-Admin-v${{ steps.version.outputs.version }}-web.zip`
             2. Extract and open `index.html`
-            3. Or visit: https://dali951.github.io/task-tracker-admin/admin/
+            3. Or visit: https://dali951.github.io/task-tracker-admin/
 
             ### Registration Website
             Send this link to clients so they can create their own account:
