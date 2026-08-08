@@ -30,7 +30,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   }
 
   Future<void> _create() async {
-    final email = _emailCtrl.text.trim();
+    final email = _emailCtrl.text.trim().toLowerCase();
     final password = _passwordCtrl.text;
     final name = _nameCtrl.text.trim();
 
@@ -97,7 +97,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           'displayName': name,
           'createdBy': FirebaseAuth.instance.currentUser?.email ?? 'admin',
           'createdAt': DateTime.now().toIso8601String(),
-          'storedPassword': password,
         });
       }
 

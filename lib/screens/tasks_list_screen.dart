@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:task_tracker_admin/screens/task_detail_screen.dart';
+import 'package:task_tracker_admin/utils/upload_progress.dart';
 
 class TasksListScreen extends StatelessWidget {
   const TasksListScreen({super.key});
@@ -87,9 +88,12 @@ class TasksListScreen extends StatelessWidget {
                       Text('Created by: $createdBy',
                           style: TextStyle(
                               fontSize: 11, color: Colors.grey.shade500)),
+                      if (isUploading(data) || isUploadPaused(data))
+                        UploadProgressBar(
+                            doc: data, paused: isUploadPaused(data)),
                     ],
                   ),
-                  isThreeLine: true,
+                  isThreeLine: false,
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -122,6 +126,11 @@ class TasksListScreen extends StatelessWidget {
         return const Color(0xFFF57F17);
       case 'doing':
         return const Color(0xFF1565C0);
+      case 'uploading':
+        return const Color(0xFF1565C0);
+      case 'paused':
+      case 'failed':
+        return const Color(0xFFE65100);
       default:
         return Colors.grey;
     }
@@ -135,6 +144,11 @@ class TasksListScreen extends StatelessWidget {
         return Icons.rate_review_outlined;
       case 'doing':
         return Icons.play_circle_outline;
+      case 'uploading':
+        return Icons.cloud_upload_outlined;
+      case 'paused':
+      case 'failed':
+        return Icons.pause_circle_outline;
       default:
         return Icons.hourglass_empty;
     }
@@ -157,6 +171,13 @@ class _StatusChip extends StatelessWidget {
         break;
       case 'doing':
         color = const Color(0xFF1565C0);
+        break;
+      case 'uploading':
+        color = const Color(0xFF1565C0);
+        break;
+      case 'paused':
+      case 'failed':
+        color = const Color(0xFFE65100);
         break;
       default:
         color = Colors.grey;

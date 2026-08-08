@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:task_tracker_admin/screens/problem_detail_screen.dart';
+import 'package:task_tracker_admin/utils/upload_progress.dart';
 
 class ProblemsListScreen extends StatelessWidget {
   const ProblemsListScreen({super.key});
@@ -99,9 +100,12 @@ class ProblemsListScreen extends StatelessWidget {
                             style: TextStyle(
                                 fontSize: 11,
                                 color: Colors.blue.shade700)),
+                      if (isUploading(data) || isUploadPaused(data))
+                        UploadProgressBar(
+                            doc: data, paused: isUploadPaused(data)),
                     ],
                   ),
-                  isThreeLine: true,
+                  isThreeLine: false,
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -140,6 +144,13 @@ class _ProblemStatusChip extends StatelessWidget {
         break;
       case 'assigned':
         color = const Color(0xFF1565C0);
+        break;
+      case 'uploading':
+        color = const Color(0xFF1565C0);
+        break;
+      case 'paused':
+      case 'failed':
+        color = const Color(0xFFE65100);
         break;
       default:
         color = const Color(0xFFC62828);

@@ -1,10 +1,112 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:task_tracker_admin/screens/task_detail_screen.dart';
+import 'package:task_tracker_admin/utils/upload_progress.dart';
 
 class ProblemDetailScreen extends StatelessWidget {
   final String problemId;
   const ProblemDetailScreen({super.key, required this.problemId});
+
+  List<String> _existingPhotoUrls(Map<String, dynamic> data) {
+    final urls =
+        (data['photoUrls'] as List?)?.whereType<String>().toList() ?? [];
+    if (urls.isNotEmpty) return urls;
+    final single = data['photoUrl'] as String?;
+    return (single == null || single.isEmpty) ? [] : [single];
+  }
+
+  Future<void> _completeNow(
+      BuildContext context, Map<String, dynamic> data) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Complete Report Now'),
+        content: const Text(
+            'Mark this report as delivered with the photos uploaded so far?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Complete')),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final adminEmail = FirebaseAuth.instance.currentUser?.email ?? 'admin';
+    final photoUrls = _existingPhotoUrls(data);
+    final total =
+        (data['uploadTotal'] as num?)?.toInt() ?? photoUrls.length;
+    final ref =
+        FirebaseFirestore.instance.collection('problems').doc(problemId);
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      final update = <String, dynamic>{
+        'status': 'open',
+        'photoUrl': photoUrls.isEmpty ? null : photoUrls.first,
+        'photoUrls': photoUrls,
+        'uploadsComplete': true,
+        'uploadCompleted': photoUrls.length,
+        'uploadTotal': total,
+        'reviewedBy': adminEmail,
+        'reviewedAt': Timestamp.now(),
+      };
+      if (data['managerEmail'] is String &&
+          (data['managerEmail'] as String).isNotEmpty) {
+        update['managerEmail'] = data['managerEmail'];
+      }
+      await ref.update(update);
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Report completed')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+    }
+  }
+
+  Future<void> _stopUpload(
+      BuildContext context, Map<String, dynamic> data) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Stop Upload'),
+        content: const Text(
+            'Stop this upload? Photos already uploaded stay on the report, '
+            'and the report returns to Open.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Stop')),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final adminEmail = FirebaseAuth.instance.currentUser?.email ?? 'admin';
+    final ref =
+        FirebaseFirestore.instance.collection('problems').doc(problemId);
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      await ref.update({
+        'status': 'open',
+        'uploadsComplete': false,
+        'reviewedBy': adminEmail,
+        'reviewedAt': Timestamp.now(),
+      });
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Upload stopped')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,11 +115,11 @@ class ProblemDetailScreen extends StatelessWidget {
         title: const Text('Problem Details'),
         centerTitle: true,
       ),
-      body: FutureBuilder<DocumentSnapshot>(
-        future: FirebaseFirestore.instance
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
             .collection('problems')
             .doc(problemId)
-            .get(),
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -27,7 +129,8 @@ class ProblemDetailScreen extends StatelessWidget {
           }
 
           final data = snapshot.data!.data() as Map<String, dynamic>;
-          final description = data['description'] as String? ?? 'No description';
+          final description =
+              data['description'] as String? ?? 'No description';
           final reporterName = data['reporterName'] as String? ?? 'Unknown';
           final reportedBy = data['reportedBy'] as String? ?? '';
           final status = data['status'] as String? ?? 'open';
@@ -40,14 +143,56 @@ class ProblemDetailScreen extends StatelessWidget {
                   .format((createdAt as Timestamp).toDate())
               : 'Unknown';
 
+          final uploading = isUploading(data) || isUploadPaused(data);
+
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // Upload progress panel
+              if (uploading) ...[
+                Card(
+                  elevation: 0,
+                  color: const Color(0xFFE3F2FD),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.blue.shade200),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        UploadProgressBar(
+                            doc: data, paused: isUploadPaused(data)),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            OutlinedButton.icon(
+                              icon: const Icon(Icons.stop, size: 18),
+                              label: const Text('Stop'),
+                              onPressed: () => _stopUpload(context, data),
+                            ),
+                            FilledButton.icon(
+                              icon: const Icon(Icons.check, size: 18),
+                              label: const Text('Complete Now'),
+                              onPressed: () => _completeNow(context, data),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
               // Status badge
               Align(
                 alignment: Alignment.centerLeft,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: _statusColor(status).withAlpha(25),
                     borderRadius: BorderRadius.circular(16),
@@ -116,7 +261,13 @@ class ProblemDetailScreen extends StatelessWidget {
                             fontSize: 12, color: Colors.grey.shade600)),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      // Navigate to task detail would need a route
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              TaskDetailScreen(taskId: convertedToTaskId),
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -134,6 +285,11 @@ class ProblemDetailScreen extends StatelessWidget {
         return const Color(0xFF2E7D32);
       case 'assigned':
         return const Color(0xFF1565C0);
+      case 'uploading':
+        return const Color(0xFF1565C0);
+      case 'paused':
+      case 'failed':
+        return const Color(0xFFE65100);
       default:
         return const Color(0xFFC62828);
     }

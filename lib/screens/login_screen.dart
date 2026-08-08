@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:task_tracker_admin/screens/dashboard_screen.dart';
+import 'package:task_tracker_admin/services/admin_identity.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -47,6 +48,12 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _adminEmail,
         password: _adminPassword,
       );
+
+      try {
+        await ensureAdminRole();
+      } catch (e) {
+        debugPrint('Admin role stamp failed: $e');
+      }
 
       setState(() => _status = 'Connected');
       _goToDashboard();

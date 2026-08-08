@@ -1,11 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:task_tracker_admin/firebase_options.dart';
 import 'package:task_tracker_admin/screens/dashboard_screen.dart';
 import 'package:task_tracker_admin/screens/login_screen.dart';
+import 'package:task_tracker_admin/services/admin_identity.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -39,6 +40,9 @@ class _AdminAppState extends State<AdminApp> {
   void initState() {
     super.initState();
     _loadTheme();
+    if (FirebaseAuth.instance.currentUser != null) {
+      ensureAdminRole().catchError((_) {});
+    }
   }
 
   Future<void> _loadTheme() async {
