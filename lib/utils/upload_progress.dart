@@ -14,8 +14,10 @@ double uploadProgress(Map<String, dynamic> doc) {
   return 0.0;
 }
 
-bool isUploading(Map<String, dynamic> doc) =>
-    doc['status'] as String? == 'uploading';
+bool isUploading(Map<String, dynamic> doc) {
+  final status = doc['status'] as String?;
+  return status == 'uploading';
+}
 
 bool isUploadPaused(Map<String, dynamic> doc) {
   final status = doc['status'] as String?;
