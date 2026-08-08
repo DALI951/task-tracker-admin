@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:task_tracker_admin/screens/dashboard_screen.dart';
 import 'package:task_tracker_admin/services/admin_identity.dart';
 
@@ -15,6 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passCtrl = TextEditingController();
   bool _error = false;
   bool _loading = false;
+  bool _obscure = true;
   String? _status;
 
   static const _defaultPass = 'tasktracker2024';
@@ -22,10 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   static const _adminPassword = 'TaskTrackerAdmin2024!';
 
   Future<void> _login() async {
-    final prefs = await SharedPreferences.getInstance();
-    final adminPass = prefs.getString('admin_passphrase') ?? _defaultPass;
-
-    if (_passCtrl.text != adminPass) {
+    if (_passCtrl.text != _defaultPass) {
       setState(() => _error = true);
       return;
     }
@@ -126,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   TextField(
                     controller: _passCtrl,
-                    obscureText: true,
+                    obscureText: _obscure,
                     enabled: !_loading,
                     decoration: InputDecoration(
                       hintText: 'Admin passphrase',
@@ -134,6 +131,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       errorText: _error ? 'Invalid passphrase' : null,
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscure
+                            ? Icons.visibility_off
+                            : Icons.visibility),
+                        onPressed: () =>
+                            setState(() => _obscure = !_obscure),
+                        tooltip: _obscure ? 'Show' : 'Hide',
+                      ),
                     ),
                     onSubmitted: (_) => _login(),
                   ),

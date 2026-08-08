@@ -1,7 +1,7 @@
-name: task_tracker_admin
+﻿name: task_tracker_admin
 description: "Task Tracker Admin Panel"
 publish_to: 'none'
-version: 1.4.0+2
+version: 1.4.1+3
 
 environment:
   sdk: ^3.5.0

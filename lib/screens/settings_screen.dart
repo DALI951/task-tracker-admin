@@ -68,95 +68,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     }
   }
 
-  Future<void> _changePassphrase() async {
-    final currentCtrl = TextEditingController();
-    final newCtrl = TextEditingController();
-    final confirmCtrl = TextEditingController();
-
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Change Passphrase'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: currentCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Current Passphrase',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: newCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'New Passphrase',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: confirmCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Confirm New Passphrase',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              final storedPass =
-                  prefs.getString('admin_passphrase') ?? 'tasktracker2024';
-              if (currentCtrl.text != storedPass) {
-                if (ctx.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Current passphrase is wrong')),
-                  );
-                }
-                return;
-              }
-              if (newCtrl.text.isEmpty || newCtrl.text != confirmCtrl.text) {
-                if (ctx.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Passphrases do not match')),
-                  );
-                }
-                return;
-              }
-              Navigator.pop(ctx, true);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == true) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('admin_passphrase', newCtrl.text);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Passphrase updated')),
-        );
-      }
-    }
-
-    currentCtrl.dispose();
-    newCtrl.dispose();
-    confirmCtrl.dispose();
-  }
-
   Future<void> _changeAdminPassword() async {
     final newPassCtrl = TextEditingController();
     final confirmCtrl = TextEditingController();
@@ -285,13 +196,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             const Divider(),
           ],
           _section('Security'),
-          ListTile(
-            leading: const Icon(Icons.lock_outline),
-            title: const Text('Change Passphrase'),
-            subtitle: const Text('Admin login passphrase'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _changePassphrase,
-          ),
           ListTile(
             leading: const Icon(Icons.password),
             title: const Text('Change Admin Password'),
